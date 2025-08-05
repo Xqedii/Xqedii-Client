@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "xqediiclient",
+  "version": "${version}",
+  "name": "XqediiClient",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/xqediiclient/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": [
+      "dev.xqedii.xqediiclient.client.XqediiclientDataGenerator"
+    ],
+    "client": [
+      "dev.xqedii.xqediiclient.client.XqediiclientClient"
+    ],
+    "main": [
+      "dev.xqedii.xqediiclient.Xqediiclient"
+    ]
+  },
+  "mixins": [
+    "xqediiclient.mixins.json",
+    {
+      "config": "xqediiclient.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
