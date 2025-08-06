@@ -4,17 +4,15 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
+import net.minecraft.text.*;
 
 public class NbtFormatter {
 
-    private static final TextColor COLOR_STRUCTURE = TextColor.fromRgb(0xb4b4b4);
+    private static final TextColor COLOR_PUNCTUATION = TextColor.fromRgb(0x8c8c8c);
     private static final TextColor COLOR_KEY = TextColor.fromRgb(0xd7ba7d);
-    private static final TextColor COLOR_STRING_VALUE = TextColor.fromRgb(0xd69d85);
-    private static final TextColor COLOR_NUMBER_VALUE = TextColor.fromRgb(0x569cd6);
+    private static final TextColor COLOR_VALUE = TextColor.fromRgb(0x5498d0);
+
+    private static final Text HOVER_TEXT = Text.translatable("chat.copy.click").formatted(net.minecraft.util.Formatting.GRAY);
 
     public static void sendFormattedNbt(NbtElement nbt, ClientPlayerEntity player) {
         if (nbt == null) return;
@@ -37,54 +35,73 @@ public class NbtFormatter {
 
     private static Text formatLine(String line) {
         MutableText formattedLine = Text.empty();
-        String trimmedLine = line.trim();
 
         int indentDepth = 0;
-        while (indentDepth < line.length() && line.charAt(indentDepth) == ' ') {
+        while (indentDepth < line.length() && Character.isWhitespace(line.charAt(indentDepth))) {
             indentDepth++;
         }
-        String indent = line.substring(0, indentDepth);
-        formattedLine.append(Text.literal(indent));
+        formattedLine.append(line.substring(0, indentDepth));
 
-        int colonIndex = trimmedLine.indexOf(':');
-        if (colonIndex > 0) {
-            String key = trimmedLine.substring(0, colonIndex);
-            String value = trimmedLine.substring(colonIndex + 1).trim();
+        String trimmedLine = line.trim();
 
-            formattedLine.append(Text.literal(key).setStyle(Style.EMPTY.withColor(COLOR_KEY)));
-            formattedLine.append(Text.literal(": ").setStyle(Style.EMPTY.withColor(COLOR_STRUCTURE)));
-            formattedLine.append(formatValue(value));
-        } else {
-            if (trimmedLine.endsWith(",")) {
-                formattedLine.append(formatValue(trimmedLine.substring(0, trimmedLine.length() - 1)));
-                formattedLine.append(Text.literal(",").setStyle(Style.EMPTY.withColor(COLOR_STRUCTURE)));
-            } else {
-                formattedLine.append(formatValue(trimmedLine));
+        String[] tokens = trimmedLine.split("(?<=[,:{}\\[\\]\"])|(?=[\",:{}\\[\\]])");
+
+        boolean afterColon = false;
+
+        for (String token : tokens) {
+            if (token.isBlank()) {
+                formattedLine.append(token);
+                continue;
+            }
+
+            if (token.equals(":") || token.equals(",") || token.equals("{") || token.equals("}") || token.equals("[") || token.equals("]") || token.equals("\"")) {
+                formattedLine.append(Text.literal(token).styled(s -> s.withColor(COLOR_PUNCTUATION)));
+                if (token.equals(":")) {
+                    afterColon = true;
+                }
+            }
+            else if (afterColon) {
+                formattedLine.append(createClickableValueText(token, COLOR_VALUE));
+            }
+            else {
+                formattedLine.append(Text.literal(token).styled(s -> s.withColor(COLOR_KEY)));
             }
         }
+
         return formattedLine;
     }
 
-    private static Text formatValue(String value) {
-        value = value.trim();
-        if (value.startsWith("\"") || value.startsWith("'")) {
-            return Text.literal(value).setStyle(Style.EMPTY.withColor(COLOR_STRING_VALUE));
+    private static MutableText createClickableValueText(String text, TextColor color) {
+        String copyText = text;
+        if (copyText.matches(".*[bslfdBSLFD]$")) {
+            copyText = copyText.substring(0, copyText.length() - 1);
         }
-        if (Character.isDigit(value.charAt(0)) || (value.length() > 1 && value.charAt(0) == '-' && Character.isDigit(value.charAt(1)))) {
-            return Text.literal(value).setStyle(Style.EMPTY.withColor(COLOR_NUMBER_VALUE));
-        }
-        if (value.equals("true") || value.equals("false")) {
-            return Text.literal(value).setStyle(Style.EMPTY.withColor(COLOR_NUMBER_VALUE));
-        }
-        return Text.literal(value).setStyle(Style.EMPTY.withColor(COLOR_STRUCTURE));
+
+        Style style = Style.EMPTY
+                .withColor(color)
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, copyText))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, HOVER_TEXT));
+
+        return Text.literal(text).setStyle(style);
     }
 
     private static String prettyPrintNbt(String rawNbt) {
         StringBuilder pretty = new StringBuilder();
         int indentLevel = 0;
         boolean inString = false;
+        boolean escaped = false;
 
         for (char c : rawNbt.toCharArray()) {
+            if (escaped) {
+                pretty.append(c);
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                pretty.append(c);
+                escaped = true;
+                continue;
+            }
             if (c == '"') {
                 inString = !inString;
             }
