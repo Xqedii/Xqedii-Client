@@ -17,16 +17,12 @@ public class ScreenMixin {
 
     @Inject(
             method = "handleTextClick",
-            at = @At("RETURN") // Wstrzyknij kod tuż przed zwróceniem wartości przez metodę
+            at = @At("RETURN")
     )
     private void onTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
-        // Sprawdź, czy oryginalna metoda zakończyła się sukcesem (kliknięcie zostało obsłużone)
         if (cir.getReturnValue() && style != null) {
             ClickEvent clickEvent = style.getClickEvent();
-
-            // Sprawdź, czy istnieje ClickEvent i czy jest to akcja kopiowania do schowka
             if (clickEvent != null && clickEvent.getAction() == ClickEvent.Action.COPY_TO_CLIPBOARD) {
-                // Odtwórz dźwięk!
                 MinecraftClient client = MinecraftClient.getInstance();
                 if (client != null) {
                     client.getSoundManager().play(PositionedSoundInstance.master(
