@@ -15,7 +15,7 @@ To enable the client, simply download the built version from `build/libs/XqediiC
 ## Panel
 Modern panel that allows you to easily manage various functions
 
-![image](https://github.com/user-attachments/assets/770e4d53-de24-4793-a57a-b17da61ea6e0)
+<img width="1729" height="974" alt="image" src="https://github.com/user-attachments/assets/63ff7cff-e4cf-488e-a6b7-bddf38a6599d" />
 
 ## Main Hand NBT
 Allows you to read the NBT from an object in your hand
